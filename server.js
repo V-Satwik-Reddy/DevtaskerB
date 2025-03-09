@@ -13,7 +13,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// ✅ Improved CORS setup for Cookies
+//  Improved CORS setup for Cookies
 app.use(
     cors({
         origin: "http://localhost:3000",
@@ -23,8 +23,7 @@ app.use(
     })
 );
 
-// ✅ Improved MongoDB Connection with error handling
-mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGO_URL)
     .then(() => console.log("✅ MongoDB Connected"))
     .catch((err) => {
         console.error("❌ MongoDB Connection Failed:", err);
@@ -34,7 +33,7 @@ mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopol
 // ✅ API Routes
 app.use("/auth", require("./routes/auth"));
 app.use("/home", require("./routes/home"));
-
+app.use("/tasks", require("./routes/tasks"));
 // ✅ Catch-all error handler (for better debugging)
 app.use((err, req, res, next) => {
     console.error(err.stack);

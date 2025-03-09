@@ -3,9 +3,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const auth = require("../middleware/auth");
-
+const Task=require("../models/Task");
 const router = express.Router();
 
+//sign up route
 router.post("/signUp", async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -34,6 +35,7 @@ router.post("/signUp", async (req, res) => {
     }
 });
 
+// Login Route
 router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -47,9 +49,9 @@ router.post("/login", async (req, res) => {
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: false, // Set to true in production with HTTPS
+            secure: false, 
             sameSite: "Strict",
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            maxAge: 24 * 60 * 60 * 1000, 
         });
 
         res.json({ message: "Logged in successfully" });
@@ -58,17 +60,21 @@ router.post("/login", async (req, res) => {
     }
 });
 
-// Logout Route: Clears the cookie
+// Logout Route
 router.post("/logout", (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
-        secure: false, // Set to true in production with HTTPS
+        secure: false, 
         sameSite: "Strict",
     });
     res.json({ message: "Logged out successfully" });
 });
 
+//verify user for protected routes
 router.get("/verify", auth, (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
     res.json({ user: req.user });
 });
 
