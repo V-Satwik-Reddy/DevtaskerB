@@ -23,6 +23,9 @@ router.post("/createTask", auth, async (req, res) => {
             dueDate,
             user: req.user.id, // Fix: Store only user ID
         });
+        if (req.body.status) {
+            taskData.status = req.body.status;
+        }
 
         await task.save();
         return res.status(201).json({ message: "Task created successfully", task });
