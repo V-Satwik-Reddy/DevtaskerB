@@ -24,7 +24,7 @@ router.post("/createTask", auth, async (req, res) => {
             user: req.user.id, // Fix: Store only user ID
         });
         if (req.body.status) {
-            taskData.status = req.body.status;
+            task.status = req.body.status;
         }
 
         await task.save();
@@ -35,16 +35,56 @@ router.post("/createTask", auth, async (req, res) => {
     }
 });
 
-// Get All Tasks for Logged-in User
-router.get("/getTasks", auth, async (req, res) => {
+// Get Tasks
+router.get("/getTasks", async (req, res) => {
     try {
-        const tasks = await Task.find({ user: req.user.id });
-        return res.json({ tasks });
+        const { status, priority, sortBy, order } = req.query;
+
+        let filter = {};
+        if (status) filter.status = status;
+        if (priority) filter.priority = priority;
+
+        // Sort direction
+        const sortOrder = order === "desc" ? -1 : 1;
+
+        // Aggregation pipeline
+        let pipeline = [
+            { $match: filter },
+            { 
+                $addFields: { 
+                    priorityValue: {
+                        $switch: {
+                            branches: [
+                                { case: { $eq: ["$priority", "Critical"] }, then: 4 },
+                                { case: { $eq: ["$priority", "High"] }, then: 3 },
+                                { case: { $eq: ["$priority", "Medium"] }, then: 2 },
+                                { case: { $eq: ["$priority", "Low"] }, then: 1 }
+                            ],
+                            default: 0
+                        }
+                    }
+                }
+            }
+        ];
+
+        // Add sorting if applicable
+        if (sortBy) {
+            const sortField = sortBy === "priority" ? "priorityValue" : sortBy;
+            pipeline.push({ $sort: { [sortField]: sortOrder } });
+        }
+
+        const tasks = await Task.aggregate(pipeline);
+        res.json({ tasks });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: "Internal Server Error" });
+        console.error("Error fetching tasks:", error);
+        res.status(500).json({ message: "Server error" });
     }
 });
+
+
+
+module.exports = router;
+
 
 // Update Task
 router.put("/updateTask/:id", auth, async (req, res) => {
@@ -96,4 +136,44 @@ router.delete("/deleteTask/:id", auth, async (req, res) => {
     }
 });
 
+
+const multer = require("multer");
+const path = require("path");
+
+// Multer Config for File Uploads
+const storage = multer.diskStorage({
+    destination: "./uploads/",
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
+});
+const upload = multer({ storage });
+
+router.post("/task/:id/upload", upload.single("file"), async (req, res) => {
+    try {
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ message: "Task not found" });
+
+        task.completionFile = req.file.path;
+        await task.save();
+
+        res.json({ message: "File uploaded successfully", filePath: req.file.path });
+    } catch (error) {
+        res.status(500).json({ message: "Error uploading file" });
+    }
+});
+
+// Get a single task by ID
+router.get("/task/:id", async (req, res) => {
+    try {
+        const task = await Task.findById(req.params.id);
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+        res.json(task);
+    } catch (error) {
+        console.error("Error fetching task:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+});
 module.exports = router;
