@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+require("./scheduler"); // Import the scheduler to start the cron job
 
 dotenv.config();
 const app = express();
