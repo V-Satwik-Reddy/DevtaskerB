@@ -34,22 +34,28 @@ router.post("/createTask", auth, async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error" });
     }
 });
+//get tasks
+const mongoose = require("mongoose");
 
-// Get Tasks
-router.get("/getTasks", async (req, res) => {
+router.get("/getTasks", auth, async (req, res) => {
     try {
         const { status, priority, sortBy, order } = req.query;
 
-        let filter = {};
+        // Convert user ID to ObjectId
+        let filter = { user: new mongoose.Types.ObjectId(req.user.id) }; 
+
         if (status) filter.status = status;
         if (priority) filter.priority = priority;
+
+        console.log("User ID from request:", req.user.id);
+        console.log("Filter being used:", filter);
 
         // Sort direction
         const sortOrder = order === "desc" ? -1 : 1;
 
         // Aggregation pipeline
         let pipeline = [
-            { $match: filter },
+            { $match: filter }, // Apply user-specific filtering
             { 
                 $addFields: { 
                     priorityValue: {
@@ -72,16 +78,15 @@ router.get("/getTasks", async (req, res) => {
             const sortField = sortBy === "priority" ? "priorityValue" : sortBy;
             pipeline.push({ $sort: { [sortField]: sortOrder } });
         }
-
+        
         const tasks = await Task.aggregate(pipeline);
+
         res.json({ tasks });
     } catch (error) {
         console.error("Error fetching tasks:", error);
         res.status(500).json({ message: "Server error" });
     }
 });
-
-
 
 module.exports = router;
 
