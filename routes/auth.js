@@ -5,6 +5,11 @@ const User = require("../models/User");
 const auth = require("../middleware/auth");
 const Task=require("../models/Task");
 const router = express.Router();
+require("dotenv").config();
+const axios = require("axios");
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const REDIRECT_URI = "http://localhost:5000/auth/google/callback";
 
 //sign up route
 router.post("/signUp", async (req, res) => {
@@ -76,6 +81,66 @@ router.get("/verify", auth, (req, res) => {
         return res.status(401).json({ message: "Unauthorized" });
     }
     res.json({ user: req.user });
+});
+
+
+//oauth google login from frontend
+router.get("/google", (req, res) => {
+    const googleAuthURL = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=email profile&access_type=offline`;
+    res.redirect(googleAuthURL);
+});
+//call back for google oauth
+router.get("/google/callback", async (req, res) => {
+    const { code } = req.query;
+
+    try {
+        // Exchange code for access token
+        const { data } = await axios.post("https://oauth2.googleapis.com/token", null, {
+            params: {
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                code,
+                redirect_uri: REDIRECT_URI,
+                grant_type: "authorization_code",
+            },
+        });
+
+        const { access_token } = data;
+
+        // Fetch user data from Google
+        const { data: googleUser } = await axios.get("https://www.googleapis.com/oauth2/v1/userinfo", {
+            headers: { Authorization: `Bearer ${access_token}` },
+        });
+
+        // Check if user exists
+        let user = await User.findOne({ email: googleUser.email });
+
+        if (!user) {
+            // Create a new user if not found
+            user = new User({
+                username: googleUser.name,
+                email: googleUser.email,
+                googleId: googleUser.id,
+            });
+            await user.save();
+        }
+
+        // Generate JWT token
+        const token = jwt.sign({ id: user._id, verified: true }, process.env.JWT_SECRET, { expiresIn: "24h" });
+
+        // Set JWT token in cookie
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: false, 
+            sameSite: "Strict",
+            maxAge: 24 * 60 * 60 * 1000, 
+        });
+
+        res.redirect("http://localhost:3000/dashboard"); // Redirect to frontend
+    } catch (error) {
+        console.error("Google Auth Error:", error);
+        res.status(500).json({ message: "Authentication failed" });
+    }
 });
 
 module.exports = router;
