@@ -47,8 +47,6 @@ router.get("/getTasks", auth, async (req, res) => {
         if (status) filter.status = status;
         if (priority) filter.priority = priority;
 
-        console.log("User ID from request:", req.user.id);
-        console.log("Filter being used:", filter);
 
         // Sort direction
         const sortOrder = order === "desc" ? -1 : 1;
