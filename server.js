@@ -24,7 +24,9 @@ app.use(
     })
 );
 
-mongoose.connect(process.env.MONGO_URL)
+mongoose.connect(process.env.MONGO_URL,{
+    maxPoolSize: 40
+})
     .then(() => console.log("✅ MongoDB Connected"))
     .catch((err) => {
         console.error("❌ MongoDB Connection Failed:", err);

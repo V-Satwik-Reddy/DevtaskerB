@@ -2,7 +2,8 @@ const express = require("express");
 const Task = require("../models/Task");
 const auth = require("../middleware/auth");
 const router = express.Router();
-
+const Redis=require("ioredis");
+const redis=new Redis();
 // Create Task
 router.post("/createTask", auth, async (req, res) => {
     try {
@@ -34,6 +35,26 @@ router.post("/createTask", auth, async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error" });
     }
 });
+// routes/tasks.js
+router.post("/bulkCreateTasks",auth, async (req, res) => {
+    try {
+        const tasks = req.body.tasks.map(task => ({
+            ...task,
+            user: req.user._id, // Assign the authenticated user to each task
+        }));
+
+        if (!Array.isArray(tasks) || tasks.length === 0) {
+            return res.status(400).json({ message: "Invalid task data" });
+        }
+
+        const createdTasks = await Task.insertMany(tasks);
+        res.status(201).json({ message: "Tasks added successfully", tasks: createdTasks });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+
 //get tasks
 const mongoose = require("mongoose");
 
@@ -179,4 +200,6 @@ router.get("/task/:id", async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
+
+
 module.exports = router;

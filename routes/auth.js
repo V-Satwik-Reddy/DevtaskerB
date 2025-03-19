@@ -18,14 +18,12 @@ router.post("/signUp", async (req, res) => {
         if (!username || !email || !password) {
             return res.status(400).json({ error: "All fields are required" });
         }
-
         let user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(password, 8);
 
         user = new User({
             username,
@@ -59,7 +57,7 @@ router.post("/login", async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000, 
         });
 
-        res.json({ message: "Logged in successfully" });
+        res.json({ message: "Logged in successfully" ,user});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
