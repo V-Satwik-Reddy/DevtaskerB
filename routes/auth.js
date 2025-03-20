@@ -10,7 +10,8 @@ const axios = require("axios");
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = "http://localhost:5000/auth/google/callback";
-
+const Redis=require("ioredis");
+const redis=new Redis();
 //sign up route
 router.post("/signUp", async (req, res) => {
     try {
@@ -49,27 +50,36 @@ router.post("/login", async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: "Invalid Password" });
 
         const token = jwt.sign({ id: user._id, verified:true}, process.env.JWT_SECRET, { expiresIn: "24h" });
-
+        
         res.cookie("token", token, {
             httpOnly: true,
             secure: false, 
             sameSite: "Strict",
             maxAge: 24 * 60 * 60 * 1000, 
         });
-
+        const tasks=await Task.find({user:user._id});
+        if(tasks.length>0){
+            const pipeline=redis.pipeline();
+            tasks.forEach(task=>{
+                pipeline.hset(user.email,`task${task._id}`,JSON.stringify(task));
+            })
+            pipeline.expire(user.email,3600);
+            await pipeline.exec();
+        }
         res.json({ message: "Logged in successfully" ,user});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-});
+})
 
 // Logout Route
-router.post("/logout", (req, res) => {
+router.post("/logout",auth ,async (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
         secure: false, 
         sameSite: "Strict",
     });
+    await redis.expire(req.user.email, 0);
     res.json({ message: "Logged out successfully" });
 });
 

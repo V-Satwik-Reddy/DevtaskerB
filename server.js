@@ -4,7 +4,6 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
-require("./scheduler"); // Import the scheduler to start the cron job
 
 dotenv.config();
 const app = express();
@@ -25,7 +24,7 @@ app.use(
 );
 
 mongoose.connect(process.env.MONGO_URL,{
-    maxPoolSize: 40
+    maxPoolSize: 200
 })
     .then(() => console.log("✅ MongoDB Connected"))
     .catch((err) => {
@@ -42,6 +41,7 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: "Internal Server Error" });
 });
+
 
 // ✅ Start the Server
 const PORT = process.env.PORT || 5000;

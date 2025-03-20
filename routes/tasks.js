@@ -27,8 +27,10 @@ router.post("/createTask", auth, async (req, res) => {
         if (req.body.status) {
             task.status = req.body.status;
         }
-
         await task.save();
+        await redis.hset(req.user.email, `task${task._id}`, JSON.stringify(task));
+        await redis.expire(req.user.email, 3600);
+        
         return res.status(201).json({ message: "Task created successfully", task });
     } catch (error) {
         console.log(error);
@@ -60,52 +62,40 @@ const mongoose = require("mongoose");
 
 router.get("/getTasks", auth, async (req, res) => {
     try {
-        const { status, priority, sortBy, order } = req.query;
+        let tasks = [];
+        const taskFields = await redis.hkeys(req.user.email);
 
-        // Convert user ID to ObjectId
-        let filter = { user: new mongoose.Types.ObjectId(req.user.id) }; 
-
-        if (status) filter.status = status;
-        if (priority) filter.priority = priority;
-
-
-        // Sort direction
-        const sortOrder = order === "desc" ? -1 : 1;
-
-        // Aggregation pipeline
-        let pipeline = [
-            { $match: filter }, // Apply user-specific filtering
-            { 
-                $addFields: { 
-                    priorityValue: {
-                        $switch: {
-                            branches: [
-                                { case: { $eq: ["$priority", "Critical"] }, then: 4 },
-                                { case: { $eq: ["$priority", "High"] }, then: 3 },
-                                { case: { $eq: ["$priority", "Medium"] }, then: 2 },
-                                { case: { $eq: ["$priority", "Low"] }, then: 1 }
-                            ],
-                            default: 0
-                        }
-                    }
-                }
-            }
-        ];
-
-        // Add sorting if applicable
-        if (sortBy) {
-            const sortField = sortBy === "priority" ? "priorityValue" : sortBy;
-            pipeline.push({ $sort: { [sortField]: sortOrder } });
+        if (taskFields.length > 0) {
+            const taskValues = await redis.hmget(req.user.email, ...taskFields);
+            tasks = taskValues.map(task => JSON.parse(task));
+        } else {
+            console.log("No tasks found in Redis");
         }
-        
-        const tasks = await Task.aggregate(pipeline);
 
-        res.json({ tasks });
+        if (tasks.length > 0) {
+            return res.json({ tasks });
+        }
+
+        // Fetch from DB if not in Redis
+        const tasksFromDB = await Task.find({ user: req.user._id });
+
+        if (tasksFromDB.length > 0) {
+            const pipeline = redis.pipeline();
+            tasksFromDB.forEach(task => {
+                pipeline.hset(req.user.email, `task${task._id}`, JSON.stringify(task));
+            });
+            pipeline.expire(req.user.email, 3600);
+            await pipeline.exec();
+        }
+
+        return res.json({ tasks: tasksFromDB });
     } catch (error) {
         console.error("Error fetching tasks:", error);
         res.status(500).json({ message: "Server error" });
     }
 });
+
+
 
 module.exports = router;
 
