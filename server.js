@@ -1,22 +1,31 @@
 const cluster = require("cluster");
 const os = require("os");
 
-if (cluster.isMaster) {
-    const numCPUs = os.cpus().length; // Get number of CPU cores
+const isRailway = !!process.env.RAILWAY_ENV; // Detect Railway Deployment
+
+if (cluster.isMaster && !isRailway) {
+    const numCPUs = os.cpus().length;
     console.log(`Master process ${process.pid} is running`);
 
-    // Fork workers for each CPU core
     for (let i = 0; i < numCPUs; i++) {
         cluster.fork();
     }
 
-    // Restart a worker if it crashes
     cluster.on("exit", (worker, code, signal) => {
         console.log(`Worker ${worker.process.pid} died, restarting...`);
         cluster.fork();
     });
+
+    // ✅ Handle SIGTERM for clean shutdown
+    process.on("SIGTERM", () => {
+        console.log("🚨 SIGTERM received. Stopping workers...");
+        for (const id in cluster.workers) {
+            cluster.workers[id].kill();
+        }
+        process.exit(0);
+    });
+
 } else {
-    // Child processes (workers) execute the Express app
     startServer();
 }
 
@@ -45,9 +54,7 @@ function startServer() {
         })
     );
 
-    mongoose.connect(process.env.MONGO_URL, {
-        maxPoolSize: 200
-    })
+    mongoose.connect(process.env.MONGO_URL, { maxPoolSize: 200 })
         .then(() => console.log(`✅ MongoDB Connected (Worker ${process.pid})`))
         .catch((err) => {
             console.error("❌ MongoDB Connection Failed:", err);
@@ -68,6 +75,16 @@ function startServer() {
     });
 
     const redis = new Redis(process.env.REDIS_URL + '?family=0');
+
+    // ✅ Handle SIGTERM for clean shutdown
+    process.on("SIGTERM", () => {
+        console.log(`🚨 Worker ${process.pid} shutting down...`);
+        redis.disconnect();
+        mongoose.connection.close(() => {
+            console.log("✅ MongoDB Disconnected");
+            process.exit(0);
+        });
+    });
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
