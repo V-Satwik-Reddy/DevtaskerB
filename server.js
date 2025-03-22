@@ -70,8 +70,8 @@ const Redis = require("ioredis");
 
 const redis = new Redis(process.env.REDIS_URL + '?family=0');
 
-redis.on("connect", () => console.log("✅ Connected to Redis"));
-redis.on("error", (err) => console.error("❌ Redis Error:", err));
+const ping = await redis.ping();
+console.log("Redis is connected:", ping);
 // ✅ Start the Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
