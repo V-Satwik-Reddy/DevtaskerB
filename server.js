@@ -36,6 +36,30 @@ mongoose.connect(process.env.MONGO_URL,{
 app.use("/auth", require("./routes/auth"));
 app.use("/home", require("./routes/home"));
 app.use("/tasks", require("./routes/tasks"));
+app.get("/",(req,res)=>{
+    res.send("Welcome to Task Manager API. You can find all the routes in the /routes");
+});
+app.get("/routes",(req,res)=>{
+    const routesList = [
+        { method: "POST", path: "/auth/signUp" },
+        { method: "POST", path: "/auth/login" },
+        { method: "POST", path: "/auth/logout" },
+        { method: "GET", path: "/auth/verify" },
+        { method: "GET", path: "/auth/google" },
+        { method: "GET", path: "/auth/google/callback" },
+        { method: "GET", path: "/home/" },
+        { method: "POST", path: "/tasks/createTask" },
+        { method: "POST", path: "/tasks/bulkCreateTasks" },
+        { method: "GET", path: "/tasks/getTasks" },
+        { method: "PUT", path: "/tasks/updateTask/:id" },
+        { method: "DELETE", path: "/tasks/deleteTask/:id" },
+        { method: "POST", path: "/tasks/task/:id/upload" },
+        { method: "GET", path: "/tasks/task/:id" },
+        { method: "GET", path: "/" },
+        { method: "GET", path: "/routes" }
+    ];
+    res.send(routesList);
+});
 // ✅ Catch-all error handler (for better debugging)
 app.use((err, req, res, next) => {
     console.error(err.stack);
