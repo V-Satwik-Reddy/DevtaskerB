@@ -66,6 +66,11 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: "Internal Server Error" });
 });
 
+const Redis = require("ioredis");
+
+const redis = new Redis(process.env.REDIS_URL, {
+    tls: process.env.REDIS_URL.includes("railway.internal") ? {} : undefined, // Prevent TLS errors on private connection
+});
 
 // ✅ Start the Server
 const PORT = process.env.PORT || 5000;
