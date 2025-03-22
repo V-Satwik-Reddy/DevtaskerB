@@ -3,7 +3,7 @@ const Task = require("../models/Task");
 const auth = require("../middleware/auth");
 const router = express.Router();
 const Redis=require("ioredis");
-const redis=new Redis(process.env.REDIS_URL);
+const redis=new Redis(process.env.REDIS_URL+ '?family=0');
 // Create Task
 router.post("/createTask", auth, async (req, res) => {
     try {
