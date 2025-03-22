@@ -12,3 +12,5 @@ module.exports = {
     }
   ]
 };
+//pm2 start server.js --name dev-server -i max --watch
+

@@ -68,6 +68,7 @@ router.get("/getTasks", auth, async (req, res) => {
         if (taskFields.length > 0) {
             const taskValues = await redis.hmget(req.user.email, ...taskFields);
             tasks = taskValues.map(task => JSON.parse(task));
+            await redis.expire(req.user.email, 3600);
         } else {
             console.log("No tasks found in Redis");
         }
@@ -111,7 +112,7 @@ router.put("/updateTask/:id", auth, async (req, res) => {
         if (!task.user.equals(req.user.id)) {
             return res.status(401).json({ message: "Not authorized" });
         }
-
+        
         const allowedUpdates = ["title", "description", "status", "priority", "dueDate"];
         const updates = Object.keys(req.body);
         const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -121,6 +122,8 @@ router.put("/updateTask/:id", auth, async (req, res) => {
         }
 
         Object.assign(task, req.body); // Merge updates
+        await redis.hset(req.user.email, `task${task._id}`, JSON.stringify(task));
+        await redis.expire(req.user.email, 3600);
         await task.save();
         
         return res.json({ message: "Task updated successfully", updatedTask: task });
@@ -141,7 +144,7 @@ router.delete("/deleteTask/:id", auth, async (req, res) => {
         if (!task.user.equals(req.user.id)) {
             return res.status(401).json({ message: "Not authorized" });
         }
-
+        await redis.hdel(req.user.email, `task${task._id}`);
         await task.deleteOne();
         return res.json({ message: "Task deleted successfully" });
     } catch (error) {
