@@ -11,7 +11,7 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = "http://localhost:5000/auth/google/callback";
 const Redis=require("ioredis");
-const redis=new Redis();
+const redis=new Redis(process.env.REDIS_URL);
 //sign up route
 router.post("/signUp", async (req, res) => {
     try {
