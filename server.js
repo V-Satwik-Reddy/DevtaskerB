@@ -72,6 +72,8 @@ const redis = new Redis(process.env.REDIS_URL, {
     tls: process.env.REDIS_URL.includes("railway.internal") ? {} : undefined, // Prevent TLS errors on private connection
 });
 
+redis.on("connect", () => console.log("✅ Connected to Redis"));
+redis.on("error", (err) => console.error("❌ Redis Error:", err));
 // ✅ Start the Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
