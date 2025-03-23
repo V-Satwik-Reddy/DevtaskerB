@@ -144,7 +144,7 @@ router.get("/google/callback", async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000, 
         });
 
-        res.redirect("http://localhost:3000/dashboard"); // Redirect to frontend
+        res.redirect("https://devtaskerb.up.railway.app/dashboard"); // Redirect to frontend
     } catch (error) {
         console.error("Google Auth Error:", error);
         res.status(500).json({ message: "Authentication failed" });
