@@ -9,7 +9,7 @@ require("dotenv").config();
 const axios = require("axios");
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = "http://localhost:5000/auth/google/callback";
+const REDIRECT_URI = "https://devtaskerb.up.railway.app/auth/google/callback";
 const Redis=require("ioredis");
 const redis=new Redis(process.env.REDIS_URL+ '?family=0');
 //sign up route
@@ -76,8 +76,8 @@ router.post("/login", async (req, res) => {
 router.post("/logout",auth ,async (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
-        secure: false, 
-        sameSite: "Strict",
+        secure: true, 
+        sameSite: "None",
     });
     await redis.expire(req.user.email, 0);
     res.json({ message: "Logged out successfully" });

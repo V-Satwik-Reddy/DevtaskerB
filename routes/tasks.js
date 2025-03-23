@@ -38,23 +38,34 @@ router.post("/createTask", auth, async (req, res) => {
     }
 });
 // routes/tasks.js
-router.post("/bulkCreateTasks",auth, async (req, res) => {
+router.post("/bulkCreateTasks", auth, async (req, res) => {
     try {
-        const tasks = req.body.tasks.map(task => ({
-            ...task,
-            user: req.user._id, // Assign the authenticated user to each task
-        }));
-
-        if (!Array.isArray(tasks) || tasks.length === 0) {
+        if (!Array.isArray(req.body.tasks) || req.body.tasks.length === 0) {
             return res.status(400).json({ message: "Invalid task data" });
         }
 
+        const tasks = req.body.tasks.map(task => ({
+            ...task,
+            user: req.user._id, 
+        }));
+
         const createdTasks = await Task.insertMany(tasks);
+
+        const pipeline = redis.pipeline();
+        createdTasks.forEach(task => {
+            pipeline.hset(req.user.email, `task${task._id}`, JSON.stringify(task));
+        });
+
+        pipeline.expire(req.user.email, 3600);
+        await pipeline.exec();
+
         res.status(201).json({ message: "Tasks added successfully", tasks: createdTasks });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Error in bulk task creation:", error);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 });
+
 
 
 //get tasks
