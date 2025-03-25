@@ -17,10 +17,10 @@ const transporter = nodemailer.createTransport({
 const sendReminderEmail = async (email, task) => {
   try {
     await transporter.sendMail({
-      from: "your-email@gmail.com",
+      from: "nodemailer3005@gmail.com",
       to: email,
       subject: "Task Due Soon Reminder",
-      text: `Reminder: Your task "${task.title}" is due on ${task.dueDate}. Please take action!`,
+      text: `Reminder: Your task "${task.title}" is due on ${task.dueDate}. Please take action and comeplet it the dec "${task.description}"!`,
     });
     console.log(`Reminder sent to ${email} for task: ${task.title}`);
   } catch (error) {
@@ -41,8 +41,6 @@ cron.schedule("0 * * * *", async () => {
     for (const task of tasks) {
       const user = await User.findById(task.user);
       if (user) {
-        
-    
         await sendReminderEmail(user.email, task); // Ensure this runs
     
         await Task.findByIdAndUpdate(task._id, { notified: true });

@@ -32,6 +32,8 @@ mongoose.connect(process.env.MONGO_URL,{
         process.exit(1);
     });
 
+require("./scheduler");
+
 // ✅ API Routes
 app.use("/auth", require("./routes/auth"));
 app.use("/home", require("./routes/home"));
