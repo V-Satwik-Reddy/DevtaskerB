@@ -4,7 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
-
+const Task = require("./models/Task");
 dotenv.config();
 const app = express();
 
@@ -65,6 +65,16 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: "Internal Server Error" });
 });
+
+app.delete("/delete",async (req,res)=>{
+    try{
+      await Task.deleteMany({});
+      return res.json("deleted");
+    }catch(err){
+      console.error(err);
+      res.render('error/500');
+    }
+  })
 
 const Redis = require("ioredis");
 
