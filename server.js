@@ -16,7 +16,7 @@ app.use(morgan("dev"));
 //  Improved CORS setup for Cookies
 app.use(
     cors({
-        origin: ["https://v-satwik-reddy.github.io"],
+        origin: ["http://localhost:3000","https://v-satwik-reddy.github.io"],
         credentials: true, // **Ensures frontend can send & receive cookies**
         methods: ["GET", "POST", "PUT", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization"]
